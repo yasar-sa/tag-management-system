@@ -5,7 +5,7 @@ import tagRoutes from './routes/tagRoutes.js';
 import groupRoutes from "./routes/groupRoutes.js";
 import familyRoutes from "./routes/familyRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
-
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 
 
@@ -30,7 +30,7 @@ app.use("/api", tagRoutes);
 app.use("/api", groupRoutes);
 app.use("/api", familyRoutes);
 app.use("/api", courseRoutes);
-
+app.use("/api", dashboardRoutes);
 
 
 // Error handling middleware

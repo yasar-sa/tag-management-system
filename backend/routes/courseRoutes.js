@@ -8,7 +8,6 @@ router.get("/courses", async (req, res) => {
   try {
 
     const courses = await Course.find()
-      .populate("group", "name");
 
     res.json(courses);
 
