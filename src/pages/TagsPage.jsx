@@ -7,22 +7,25 @@ function TagsPage() {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const fetchTags = async () => {
-    setLoading(true);
+    const fetchTags = async () => {
+    try {
+      setLoading(true);
 
-    const res = await api.get("/tags");
+      const res = await api.get("/tags");
 
-    setTags(res.data);
-
-    setLoading(false);
+      setTags(res.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    api.get("/tags").then((res) => {
-      setTags(res.data);
-      fetchTags();
-    });
+    fetchTags();
   }, []);
+
+
   if (loading) {
     return <p>Loading tags...</p>;
   }

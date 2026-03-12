@@ -34,81 +34,76 @@ function TagCard({ tag, refresh }) {
   };
 
   return (
-  <div className="card">
-
-    {/* Header */}
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-      <h3>{tag.name}</h3>
-
-      <span className={`status ${tag.isActive ? "active" : "inactive"}`}>
-        {tag.isActive ? "Active" : "Inactive"}
-      </span>
-    </div>
-
-
-    {/* Courses */}
-    <p style={{marginTop:"10px",fontWeight:"500"}}>Courses</p>
-
-    <div className="badge">
-      {tag.courses.map((c) => c.name).join(", ")}
-    </div>
-
-
-    {/* Status Toggle */}
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent:"space-between",
-        marginTop:"15px"
-      }}
-    >
-
-      <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-        <span>Status</span>
-
-        <label className="switch">
-          <input
-            type="checkbox"
-            checked={tag.isActive}
-            onChange={toggleStatus}
-          />
-          <span className="slider"></span>
-        </label>
-      </div>
-
-
-      {/* Actions */}
-      <div className="card-actions">
-
-        <FaEdit
-          style={{ cursor: "pointer" }}
-          onClick={() => setShowEdit(true)}
-        />
-
-        <FaTrash
+    <>
+      <div className="card">
+        {/* Header */}
+        <div
           style={{
-            cursor: "pointer",
-            opacity: deleting ? 0.5 : 1,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
-          onClick={deleteTag}
-        />
+        >
+          <h3>{tag.name}</h3>
 
+          <span className={`status ${tag.isActive ? "active" : "inactive"}`}>
+            {tag.isActive ? "Active" : "Inactive"}
+          </span>
+        </div>
+
+        {/* Courses */}
+        <p style={{ marginTop: "10px", fontWeight: "500" }}>Courses</p>
+
+        <div className="badge">{tag.courses.map((c) => c.name).join(", ")}</div>
+
+        {/* Status Toggle */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: "15px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span>Status</span>
+
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={tag.isActive}
+                onChange={toggleStatus}
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+
+          {/* Actions */}
+          <div className="card-actions">
+            <FaEdit
+              style={{ cursor: "pointer" }}
+              onClick={() => setShowEdit(true)}
+            />
+
+            <FaTrash
+              style={{
+                cursor: "pointer",
+                opacity: deleting ? 0.5 : 1,
+              }}
+              onClick={deleteTag}
+            />
+          </div>
+        </div>
       </div>
-
-    </div>
-
-
-    {showEdit && (
-      <EditTagModal
-        tag={tag}
-        close={() => setShowEdit(false)}
-        refresh={refresh}
-      />
-    )}
-
-  </div>
-);
+      {showEdit && (
+        <EditTagModal
+          tag={tag}
+          close={() => setShowEdit(false)}
+          refresh={refresh}
+        />
+      )}
+    </>
+  );
 }
 
 export default TagCard;

@@ -5,6 +5,10 @@ import EditGroupModal from "../components/EditGroupModal";
 
 function GroupCard({ group, refresh }) {
   const [showEdit, setShowEdit] = useState(false);
+  const MAX_TAGS = 3;
+
+  const visibleTags = group.tags.slice(0, MAX_TAGS);
+  const remainingCount = group.tags.length - MAX_TAGS;
 
   const deleteGroup = async () => {
     if (!window.confirm("Delete this group?")) return;
@@ -19,29 +23,47 @@ function GroupCard({ group, refresh }) {
   };
 
   return (
-    <div className="card">
-      <h3>{group.name}</h3>
+    <>
+      <div className="card card-grp">
+        <div className="group-header">
+          <div>
+            <h3 className="group-title">{group.name}</h3>
+            <p className="group-count">Tags ({group.tags.length})</p>
+          </div>
 
-      <p>{group.tags.map((t) => t.name).join(", ")}</p>
+          <span className="group-badge">Group</span>
+        </div>
+        <div className="tag-list">
+          <div className="tag-container">
+            {visibleTags.map((tag) => (
+              <span key={tag._id} className="tag-chip">
+                {tag.name}
+              </span>
+            ))}
 
-      <div className="card-actions">
-        <FaEdit
-          style={{ marginRight: "10px", cursor: "pointer" }}
-          onClick={() => setShowEdit(true)}
-        />
-
-        <FaTrash style={{ cursor: "pointer" }} onClick={deleteGroup} />
-      </div>
-      <div className="card-actions">
-        {showEdit && (
-          <EditGroupModal
-            group={group}
-            close={() => setShowEdit(false)}
-            refresh={refresh}
+            {remainingCount > 0 && (
+              <span className="tag-more">+{remainingCount}</span>
+            )}
+          </div>
+        </div>
+        <div className="card-actions">
+          <FaEdit
+            style={{ marginRight: "10px", cursor: "pointer" }}
+            onClick={() => setShowEdit(true)}
           />
-        )}
+
+          <FaTrash style={{ cursor: "pointer" }} onClick={deleteGroup} />
+        </div>
+        <div className="card-actions"></div>
       </div>
-    </div>
+      {showEdit && (
+        <EditGroupModal
+          group={group}
+          close={() => setShowEdit(false)}
+          refresh={refresh}
+        />
+      )}
+    </>
   );
 }
 

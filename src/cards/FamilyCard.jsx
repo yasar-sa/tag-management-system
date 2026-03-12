@@ -4,6 +4,10 @@ import { useState } from "react";
 import EditFamilyModal from "../components/EditFamilyModal";
 function FamilyCard({ family, refresh }) {
   const [showEdit, setShowEdit] = useState(false);
+  const MAX_GROUPS = 3;
+
+  const visibleTags = family.groups.slice(0, MAX_GROUPS);
+  const remainingCount = family.groups.length - MAX_GROUPS;
 
   const deleteFamily = async () => {
     if (!window.confirm("Delete this family?")) return;
@@ -18,29 +22,48 @@ function FamilyCard({ family, refresh }) {
   };
 
   return (
-    <div className="card">
-      <h3>{family.name}</h3>
+    <>
+      <div className="card card-fam">
+        <div className="family-header">
+          <div>
+            <h3 className="family-title">{family.name}</h3>
+            <p className="family-count">Groups ({family.groups.length})</p>
+          </div>
 
-      <p>{family.groups.map((g) => g.name).join(", ")}</p>
+          <span className="family-badge">Family</span>
+        </div>
+        <div className="group-list">
+          <div className="group-container">
 
-      <div className="card-actions">
-        <FaEdit
-          style={{ marginRight: "10px", cursor: "pointer" }}
-          onClick={() => setShowEdit(true)}
-        />
+          {visibleTags.map((group) => (
+            <span key={group._id} className="group-chip">
+              {group.name}
+            </span>
+          ))}
 
-        <FaTrash style={{ cursor: "pointer" }} onClick={deleteFamily} />
-      </div>
-      <div className="card-actions">
-        {showEdit && (
-          <EditFamilyModal
-            family={family}
-            close={() => setShowEdit(false)}
-            refresh={refresh}
+          {remainingCount > 0 && (
+            <span className="group-more">+{remainingCount}</span>
+          )}
+          </div>
+        </div>
+        <div className="card-actions">
+          <FaEdit
+            style={{ marginRight: "10px", cursor: "pointer" }}
+            onClick={() => setShowEdit(true)}
           />
-        )}
+
+          <FaTrash style={{ cursor: "pointer" }} onClick={deleteFamily} />
+        </div>
+        <div className="card-actions"></div>
       </div>
-    </div>
+      {showEdit && (
+        <EditFamilyModal
+          family={family}
+          close={() => setShowEdit(false)}
+          refresh={refresh}
+        />
+      )}
+    </>
   );
 }
 

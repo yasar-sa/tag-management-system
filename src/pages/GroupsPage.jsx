@@ -30,7 +30,7 @@ function GroupsPage() {
     <div>
         <div style={{display:"flex",alignItems:"center",gap:"20px"}}>
             <h3>Groups</h3>
-      <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+      <button className="btn btn-primary btn-grp" onClick={() => setShowModal(true)}>
         + Add Group
       </button>
 </div>

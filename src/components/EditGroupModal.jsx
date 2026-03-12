@@ -62,7 +62,7 @@ function EditGroupModal({group,close,refresh}){
         <h4>Select Tags</h4>
 
         {tags.map(tag=>(
-          <div key={tag._id}>
+          <div key={tag._id} className="course-row">
 
             <input
               type="checkbox"

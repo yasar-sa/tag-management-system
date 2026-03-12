@@ -19,11 +19,7 @@ function DashboardStats() {
 
   return (
 
-    <div style={{
-      display:"flex",
-      gap:"20px",
-      marginBottom:"30px"
-    }}>
+    <div>
 <div className="stats">
       <div className="stat-card">
         <h2>{stats.tags}</h2>

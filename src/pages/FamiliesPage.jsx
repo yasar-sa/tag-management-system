@@ -30,7 +30,7 @@ function FamiliesPage() {
     <div>
         <div style={{display:"flex",alignItems:"center",gap:"20px"}}>
             <h3>Families</h3>
-      <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+      <button className="btn btn-primary btn-fam" onClick={() => setShowModal(true)}>
         + Add Family
       </button>
       </div>

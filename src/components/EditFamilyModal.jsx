@@ -55,7 +55,7 @@ function EditFamilyModal({family,close,refresh}){
         <h4>Select Groups</h4>
 
         {groups.map(group=>(
-          <div key={group._id}>
+          <div key={group._id} className="course-row">
 
             <input
               type="checkbox"

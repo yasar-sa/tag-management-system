@@ -19,9 +19,14 @@ function App() {
 
   return (
     <div className="container">
+      <div className="page">
+
+  {/* Header Section */}
+  <div className="page-header">
 
       <Header />
-
+</div>
+<div className="page-content">
       <DashboardStats refreshKey={dashboardRefresh} />
 
       <Tabs active={active} setActive={setActive} />
@@ -37,7 +42,8 @@ function App() {
       {active === "families" && (
         <FamiliesPage refreshDashboard={refreshDashboard}/>
       )}
-
+</div>
+      </div>
     </div>
   );
 }
