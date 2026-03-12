@@ -49,7 +49,7 @@ function TagCard({ tag, refresh }) {
         </div>
 
         {/* Courses */}
-        <p>Hierarchy Assignments</p>
+        <p>Courses</p>
 
         <div className="assignments-box">
           {tag.courses && tag.courses.length > 0

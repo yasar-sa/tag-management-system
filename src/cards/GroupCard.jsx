@@ -42,17 +42,6 @@ function GroupCard({ group, refresh }) {
         </div>
 
         {/* Tags */}
-        <p
-          style={{
-            fontSize: "13px",
-            fontWeight: "600",
-            color: "#374151",
-            marginTop: "16px",
-            marginBottom: "4px",
-          }}
-        >
-          Tags Included
-        </p>
 
         <div
           className="assignments-box"
