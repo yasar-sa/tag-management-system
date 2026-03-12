@@ -24,37 +24,93 @@ function FamilyCard({ family, refresh }) {
   return (
     <>
       <div className="card card-fam">
-        <div className="family-header">
+        <div
+          className="family-header"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
           <div>
             <h3 className="family-title">{family.name}</h3>
             <p className="family-count">Groups ({family.groups.length})</p>
           </div>
-
           <span className="family-badge">Family</span>
         </div>
-        <div className="group-list">
-          <div className="group-container">
 
-          {visibleTags.map((group) => (
-            <span key={group._id} className="group-chip">
-              {group.name}
-            </span>
-          ))}
+        <p
+          style={{
+            fontSize: "13px",
+            fontWeight: "600",
+            color: "#374151",
+            marginTop: "16px",
+            marginBottom: "4px",
+          }}
+        >
+          Groups Included
+        </p>
 
-          {remainingCount > 0 && (
-            <span className="group-more">+{remainingCount}</span>
+        <div
+          className="assignments-box"
+          style={{
+            minHeight: "60px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px",
+            alignContent: "flex-start",
+          }}
+        >
+          {visibleTags.length > 0 ? (
+            <>
+              {visibleTags.map((group) => (
+                <span key={group._id} className="group-chip">
+                  {group.name}
+                </span>
+              ))}
+              {remainingCount > 0 && (
+                <span
+                  className="group-more"
+                  style={{ display: "flex", alignItems: "center" }}
+                >
+                  +{remainingCount}
+                </span>
+              )}
+            </>
+          ) : (
+            "No groups assigned"
           )}
+        </div>
+
+        <div style={{ flex: 1 }}></div>
+
+        {/* Divider */}
+        <div
+          style={{
+            height: "1px",
+            background: "#f3f4f6",
+            margin: "16px 0 12px 0",
+          }}
+        ></div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div className="card-actions" style={{ marginTop: 0 }}>
+            <button
+              className="action-btn"
+              onClick={() => setShowEdit(true)}
+              title="Edit"
+            >
+              <FaEdit size={14} />
+            </button>
+            <button
+              className="action-btn"
+              onClick={deleteFamily}
+              title="Delete"
+            >
+              <FaTrash size={14} />
+            </button>
           </div>
         </div>
-        <div className="card-actions">
-          <FaEdit
-            style={{ marginRight: "10px", cursor: "pointer" }}
-            onClick={() => setShowEdit(true)}
-          />
-
-          <FaTrash style={{ cursor: "pointer" }} onClick={deleteFamily} />
-        </div>
-        <div className="card-actions"></div>
       </div>
       {showEdit && (
         <EditFamilyModal

@@ -25,36 +25,92 @@ function GroupCard({ group, refresh }) {
   return (
     <>
       <div className="card card-grp">
-        <div className="group-header">
+        {/* Header */}
+        <div
+          className="group-header"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
           <div>
             <h3 className="group-title">{group.name}</h3>
             <p className="group-count">Tags ({group.tags.length})</p>
           </div>
-
           <span className="group-badge">Group</span>
         </div>
-        <div className="tag-list">
-          <div className="tag-container">
-            {visibleTags.map((tag) => (
-              <span key={tag._id} className="tag-chip">
-                {tag.name}
-              </span>
-            ))}
 
-            {remainingCount > 0 && (
-              <span className="tag-more">+{remainingCount}</span>
-            )}
+        {/* Tags */}
+        <p
+          style={{
+            fontSize: "13px",
+            fontWeight: "600",
+            color: "#374151",
+            marginTop: "16px",
+            marginBottom: "4px",
+          }}
+        >
+          Tags Included
+        </p>
+
+        <div
+          className="assignments-box"
+          style={{
+            minHeight: "60px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px",
+            alignContent: "flex-start",
+          }}
+        >
+          {visibleTags.length > 0 ? (
+            <>
+              {visibleTags.map((tag) => (
+                <span key={tag._id} className="tag-chip">
+                  {tag.name}
+                </span>
+              ))}
+              {remainingCount > 0 && (
+                <span
+                  className="tag-more"
+                  style={{ display: "flex", alignItems: "center" }}
+                >
+                  +{remainingCount}
+                </span>
+              )}
+            </>
+          ) : (
+            "No tags assigned"
+          )}
+        </div>
+
+        <div style={{ flex: 1 }}></div>
+
+        {/* Divider */}
+        <div
+          style={{
+            height: "1px",
+            background: "#f3f4f6",
+            margin: "16px 0 12px 0",
+          }}
+        ></div>
+
+        {/* Actions Layout */}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div className="card-actions" style={{ marginTop: 0 }}>
+            <button
+              className="action-btn"
+              onClick={() => setShowEdit(true)}
+              title="Edit"
+            >
+              <FaEdit size={14} />
+            </button>
+            <button className="action-btn" onClick={deleteGroup} title="Delete">
+              <FaTrash size={14} />
+            </button>
           </div>
         </div>
-        <div className="card-actions">
-          <FaEdit
-            style={{ marginRight: "10px", cursor: "pointer" }}
-            onClick={() => setShowEdit(true)}
-          />
-
-          <FaTrash style={{ cursor: "pointer" }} onClick={deleteGroup} />
-        </div>
-        <div className="card-actions"></div>
       </div>
       {showEdit && (
         <EditGroupModal

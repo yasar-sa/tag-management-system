@@ -8,41 +8,41 @@ import DashboardStats from "./components/DashboardStats";
 import "./style.css";
 
 function App() {
-
   const [active, setActive] = useState("tags");
 
   const [dashboardRefresh, setDashboardRefresh] = useState(0);
 
   const refreshDashboard = () => {
-    setDashboardRefresh(prev => prev + 1);
+    setDashboardRefresh((prev) => prev + 1);
   };
 
   return (
     <div className="container">
       <div className="page">
+        {/* Header Section */}
+        <div
+          className="page-header"
+          style={{ display: "flex", justifyContent: "center" }}
+        >
+          <Header />
+        </div>
+        <div className="page-content">
+          <DashboardStats refreshKey={dashboardRefresh} />
 
-  {/* Header Section */}
-  <div className="page-header">
+          <Tabs active={active} setActive={setActive} />
 
-      <Header />
-</div>
-<div className="page-content">
-      <DashboardStats refreshKey={dashboardRefresh} />
+          {active === "tags" && (
+            <TagsPage refreshDashboard={refreshDashboard} />
+          )}
 
-      <Tabs active={active} setActive={setActive} />
+          {active === "groups" && (
+            <GroupsPage refreshDashboard={refreshDashboard} />
+          )}
 
-      {active === "tags" && (
-        <TagsPage refreshDashboard={refreshDashboard}/>
-      )}
-
-      {active === "groups" && (
-        <GroupsPage refreshDashboard={refreshDashboard}/>
-      )}
-
-      {active === "families" && (
-        <FamiliesPage refreshDashboard={refreshDashboard}/>
-      )}
-</div>
+          {active === "families" && (
+            <FamiliesPage refreshDashboard={refreshDashboard} />
+          )}
+        </div>
       </div>
     </div>
   );

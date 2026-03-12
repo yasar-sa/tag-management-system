@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../api/api";
 import GroupCard from "../cards/GroupCard";
 import AddGroupModal from "../components/AddGroupModal";
+import { FaPlus } from "react-icons/fa";
 
 function GroupsPage() {
   const [loading, setLoading] = useState(true);
@@ -11,9 +12,7 @@ function GroupsPage() {
   const fetchGroups = async () => {
     try {
       setLoading(true);
-
       const res = await api.get("/groups");
-
       setGroups(res.data);
     } catch (error) {
       console.error(error);
@@ -26,31 +25,55 @@ function GroupsPage() {
     fetchGroups();
   }, []);
 
+  if (loading) {
+    return (
+      <p style={{ textAlign: "center", padding: "20px" }}>Loading groups...</p>
+    );
+  }
+
   return (
-    <div>
-        <div style={{display:"flex",alignItems:"center",gap:"20px"}}>
-            <h3>Groups</h3>
-      <button className="btn btn-primary btn-grp" onClick={() => setShowModal(true)}>
-        + Add Group
-      </button>
-</div>
-      {loading ? (
-        <p style={{ textAlign: "center", marginTop: "40px" }}>
-          Loading groups...
-        </p>
-      ) : (
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            flexWrap: "wrap",
-          }}
-        >
-          {groups.map((group) => (
-            <GroupCard key={group._id} group={group} refresh={fetchGroups} />
-          ))}
+    <div
+      style={{
+        padding: "0 40px",
+        maxWidth: "1200px",
+        margin: "0 auto",
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <div style={{ textAlign: "left" }}>
+          <h3 style={{ margin: "0", fontSize: "20px" }}>Group Management</h3>
+          <p
+            style={{ margin: "4px 0 0 0", color: "#6b7280", fontSize: "14px" }}
+          >
+            Create and manage tag groups for better organization
+          </p>
         </div>
-      )}
+        <button
+          className="btn btn-primary btn-grp"
+          onClick={() => setShowModal(true)}
+        >
+          <FaPlus size={12} /> Add Group
+        </button>
+      </div>
+
+      <div className="card-grid">
+        {groups.length === 0 ? (
+          <p>No groups found.</p>
+        ) : (
+          groups.map((group) => (
+            <GroupCard key={group._id} group={group} refresh={fetchGroups} />
+          ))
+        )}
+      </div>
 
       {showModal && (
         <AddGroupModal

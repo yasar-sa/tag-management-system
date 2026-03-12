@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../api/api";
 import FamilyCard from "../cards/FamilyCard";
 import AddFamilyModal from "../components/AddFamilyModal";
+import { FaPlus } from "react-icons/fa";
 
 function FamiliesPage() {
   const [families, setFamilies] = useState([]);
@@ -11,9 +12,7 @@ function FamiliesPage() {
   const fetchFamilies = async () => {
     try {
       setLoading(true);
-
       const res = await api.get("/families");
-
       setFamilies(res.data);
     } catch (error) {
       console.error(error);
@@ -26,36 +25,61 @@ function FamiliesPage() {
     fetchFamilies();
   }, []);
 
+  if (loading) {
+    return (
+      <p style={{ textAlign: "center", padding: "20px" }}>
+        Loading families...
+      </p>
+    );
+  }
+
   return (
-    <div>
-        <div style={{display:"flex",alignItems:"center",gap:"20px"}}>
-            <h3>Families</h3>
-      <button className="btn btn-primary btn-fam" onClick={() => setShowModal(true)}>
-        + Add Family
-      </button>
+    <div
+      style={{
+        padding: "0 40px",
+        maxWidth: "1200px",
+        margin: "0 auto",
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <div style={{ textAlign: "left" }}>
+          <h3 style={{ margin: "0", fontSize: "20px" }}>Family Management</h3>
+          <p
+            style={{ margin: "4px 0 0 0", color: "#6b7280", fontSize: "14px" }}
+          >
+            Create and manage tag families to group related items together
+          </p>
+        </div>
+        <button
+          className="btn btn-primary btn-fam"
+          onClick={() => setShowModal(true)}
+        >
+          <FaPlus size={12} /> Add Family
+        </button>
       </div>
 
-      {loading ? (
-        <p style={{ textAlign: "center", marginTop: "40px" }}>
-          Loading families...
-        </p>
-      ) : (
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            flexWrap: "wrap",
-          }}
-        >
-          {families.map((family) => (
+      <div className="card-grid">
+        {families.length === 0 ? (
+          <p>No families found.</p>
+        ) : (
+          families.map((family) => (
             <FamilyCard
               key={family._id}
               family={family}
               refresh={fetchFamilies}
             />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {showModal && (
         <AddFamilyModal

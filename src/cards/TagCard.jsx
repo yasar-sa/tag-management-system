@@ -6,6 +6,7 @@ import EditTagModal from "../components/EditTagModal";
 function TagCard({ tag, refresh }) {
   const [showEdit, setShowEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
   const toggleStatus = async () => {
     await api.put(`/tags/${tag._id}`, {
       name: tag.name,
@@ -13,7 +14,6 @@ function TagCard({ tag, refresh }) {
       courses: tag.courses.map((c) => c._id),
       isActive: !tag.isActive,
     });
-
     refresh();
   };
 
@@ -22,9 +22,7 @@ function TagCard({ tag, refresh }) {
 
     try {
       setDeleting(true);
-
       await api.delete(`/tags/${tag._id}`);
-
       refresh();
     } catch (error) {
       alert(error.response?.data?.message || "Delete failed");
@@ -45,29 +43,41 @@ function TagCard({ tag, refresh }) {
           }}
         >
           <h3>{tag.name}</h3>
-
           <span className={`status ${tag.isActive ? "active" : "inactive"}`}>
             {tag.isActive ? "Active" : "Inactive"}
           </span>
         </div>
 
         {/* Courses */}
-        <p style={{ marginTop: "10px", fontWeight: "500" }}>Courses</p>
+        <p>Hierarchy Assignments</p>
 
-        <div className="badge">{tag.courses.map((c) => c.name).join(", ")}</div>
+        <div className="assignments-box">
+          {tag.courses && tag.courses.length > 0
+            ? tag.courses.map((c) => c.name).join(", ")
+            : "No assignments"}
+        </div>
 
-        {/* Status Toggle */}
+        <div style={{ flex: 1 }}></div>
+
+        {/* Divider */}
+        <div
+          style={{
+            height: "1px",
+            background: "#f3f4f6",
+            margin: "16px 0 12px 0",
+          }}
+        ></div>
+
+        {/* Status Toggle & Actions */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginTop: "15px",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span>Status</span>
-
+            <span style={{ fontSize: "13px", color: "#6b7280" }}>Status:</span>
             <label className="switch">
               <input
                 type="checkbox"
@@ -78,23 +88,27 @@ function TagCard({ tag, refresh }) {
             </label>
           </div>
 
-          {/* Actions */}
           <div className="card-actions">
-            <FaEdit
-              style={{ cursor: "pointer" }}
+            <button
+              className="action-btn"
               onClick={() => setShowEdit(true)}
-            />
-
-            <FaTrash
-              style={{
-                cursor: "pointer",
-                opacity: deleting ? 0.5 : 1,
-              }}
+              title="Edit"
+            >
+              <FaEdit size={14} />
+            </button>
+            <button
+              className="action-btn"
               onClick={deleteTag}
-            />
+              disabled={deleting}
+              style={{ opacity: deleting ? 0.5 : 1 }}
+              title="Delete"
+            >
+              <FaTrash size={14} />
+            </button>
           </div>
         </div>
       </div>
+
       {showEdit && (
         <EditTagModal
           tag={tag}
