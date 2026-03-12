@@ -46,7 +46,6 @@ function GroupCard({ group, refresh }) {
         <div
           className="assignments-box"
           style={{
-            minHeight: "60px",
             display: "flex",
             flexWrap: "wrap",
             gap: "8px",
@@ -76,18 +75,11 @@ function GroupCard({ group, refresh }) {
 
         <div style={{ flex: 1 }}></div>
 
-        {/* Divider */}
-        <div
-          style={{
-            height: "1px",
-            background: "#f3f4f6",
-            margin: "16px 0 12px 0",
-          }}
-        ></div>
+
 
         {/* Actions Layout */}
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <div className="card-actions" style={{ marginTop: 0 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
+          <div className="card-actions">
             <button
               className="action-btn"
               onClick={() => setShowEdit(true)}

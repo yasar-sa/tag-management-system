@@ -4,7 +4,7 @@ import TagCard from "../cards/TagCard";
 import AddTagModal from "../components/AddTagModal";
 import { FaPlus } from "react-icons/fa";
 
-function TagsPage() {
+function TagsPage({ refreshDashboard }) {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -24,6 +24,11 @@ function TagsPage() {
     fetchTags();
   }, []);
 
+  const handleRefresh = () => {
+    fetchTags();
+    if (refreshDashboard) refreshDashboard();
+  };
+
   if (loading) {
     return (
       <p style={{ textAlign: "center", padding: "20px" }}>Loading tags...</p>
@@ -33,8 +38,8 @@ function TagsPage() {
   return (
     <div
       style={{
-        padding: "0 40px",
-        maxWidth: "1200px",
+        padding: "0",
+        maxWidth: "1100px",
         margin: "0 auto",
         width: "100%",
         boxSizing: "border-box",
@@ -45,7 +50,7 @@ function TagsPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "20px",
+          marginBottom: "16px",
         }}
       >
         <div style={{ textAlign: "left" }}>
@@ -62,7 +67,7 @@ function TagsPage() {
       </div>
 
       {showModal && (
-        <AddTagModal close={() => setShowModal(false)} refresh={fetchTags} />
+        <AddTagModal close={() => setShowModal(false)} refresh={handleRefresh} />
       )}
 
       <div className="card-grid">
@@ -70,7 +75,7 @@ function TagsPage() {
           <p>No tags found.</p>
         ) : (
           tags.map((tag) => (
-            <TagCard key={tag._id} tag={tag} refresh={fetchTags} />
+            <TagCard key={tag._id} tag={tag} refresh={handleRefresh} />
           ))
         )}
       </div>

@@ -59,14 +59,7 @@ function TagCard({ tag, refresh }) {
 
         <div style={{ flex: 1 }}></div>
 
-        {/* Divider */}
-        <div
-          style={{
-            height: "1px",
-            background: "#f3f4f6",
-            margin: "16px 0 12px 0",
-          }}
-        ></div>
+
 
         {/* Status Toggle & Actions */}
         <div
@@ -74,10 +67,11 @@ function TagCard({ tag, refresh }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            marginTop: "16px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "13px", color: "#6b7280" }}>Status:</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563" }}>Status:</span>
             <label className="switch">
               <input
                 type="checkbox"

@@ -21,7 +21,7 @@ useEffect(() => {
 }, [refreshKey]);
 
   return (
-    <div className="stats" style={{ padding: "0 40px" }}>
+    <div className="stats">
       <div className="stat-card">
         <div className="stat-info">
           <span className="stat-label">Total Tags</span>

@@ -7,9 +7,9 @@ function Header() {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "20px 40px",
         width: "100%",
-        maxWidth: "1200px",
+        maxWidth: "1100px",
+        padding: "12px 0"
       }}
     >
       <div style={{ textAlign: "left" }}>

@@ -4,7 +4,7 @@ import FamilyCard from "../cards/FamilyCard";
 import AddFamilyModal from "../components/AddFamilyModal";
 import { FaPlus } from "react-icons/fa";
 
-function FamiliesPage() {
+function FamiliesPage({ refreshDashboard }) {
   const [families, setFamilies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -25,6 +25,11 @@ function FamiliesPage() {
     fetchFamilies();
   }, []);
 
+  const handleRefresh = () => {
+    fetchFamilies();
+    if (refreshDashboard) refreshDashboard();
+  };
+
   if (loading) {
     return (
       <p style={{ textAlign: "center", padding: "20px" }}>
@@ -36,8 +41,8 @@ function FamiliesPage() {
   return (
     <div
       style={{
-        padding: "0 40px",
-        maxWidth: "1200px",
+        padding: "0",
+        maxWidth: "1100px",
         margin: "0 auto",
         width: "100%",
         boxSizing: "border-box",
@@ -48,7 +53,7 @@ function FamiliesPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "20px",
+          marginBottom: "16px",
         }}
       >
         <div style={{ textAlign: "left" }}>
@@ -75,7 +80,7 @@ function FamiliesPage() {
             <FamilyCard
               key={family._id}
               family={family}
-              refresh={fetchFamilies}
+              refresh={handleRefresh}
             />
           ))
         )}
@@ -84,7 +89,7 @@ function FamiliesPage() {
       {showModal && (
         <AddFamilyModal
           close={() => setShowModal(false)}
-          refresh={fetchFamilies}
+          refresh={handleRefresh}
         />
       )}
     </div>

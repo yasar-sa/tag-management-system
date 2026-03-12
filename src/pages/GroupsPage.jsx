@@ -4,7 +4,7 @@ import GroupCard from "../cards/GroupCard";
 import AddGroupModal from "../components/AddGroupModal";
 import { FaPlus } from "react-icons/fa";
 
-function GroupsPage() {
+function GroupsPage({ refreshDashboard }) {
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -25,6 +25,11 @@ function GroupsPage() {
     fetchGroups();
   }, []);
 
+  const handleRefresh = () => {
+    fetchGroups();
+    if (refreshDashboard) refreshDashboard();
+  };
+
   if (loading) {
     return (
       <p style={{ textAlign: "center", padding: "20px" }}>Loading groups...</p>
@@ -34,8 +39,8 @@ function GroupsPage() {
   return (
     <div
       style={{
-        padding: "0 40px",
-        maxWidth: "1200px",
+        padding: "0",
+        maxWidth: "1100px",
         margin: "0 auto",
         width: "100%",
         boxSizing: "border-box",
@@ -46,7 +51,7 @@ function GroupsPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "20px",
+          marginBottom: "16px",
         }}
       >
         <div style={{ textAlign: "left" }}>
@@ -70,7 +75,7 @@ function GroupsPage() {
           <p>No groups found.</p>
         ) : (
           groups.map((group) => (
-            <GroupCard key={group._id} group={group} refresh={fetchGroups} />
+            <GroupCard key={group._id} group={group} refresh={handleRefresh} />
           ))
         )}
       </div>
@@ -78,7 +83,7 @@ function GroupsPage() {
       {showModal && (
         <AddGroupModal
           close={() => setShowModal(false)}
-          refresh={fetchGroups}
+          refresh={handleRefresh}
         />
       )}
     </div>

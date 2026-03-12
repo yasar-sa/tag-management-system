@@ -39,22 +39,11 @@ function FamilyCard({ family, refresh }) {
           <span className="family-badge">Family</span>
         </div>
 
-        <p
-          style={{
-            fontSize: "13px",
-            fontWeight: "600",
-            color: "#374151",
-            marginTop: "16px",
-            marginBottom: "4px",
-          }}
-        >
-          Groups Included
-        </p>
+        <p>Groups Included</p>
 
         <div
           className="assignments-box"
           style={{
-            minHeight: "60px",
             display: "flex",
             flexWrap: "wrap",
             gap: "8px",
@@ -84,17 +73,10 @@ function FamilyCard({ family, refresh }) {
 
         <div style={{ flex: 1 }}></div>
 
-        {/* Divider */}
-        <div
-          style={{
-            height: "1px",
-            background: "#f3f4f6",
-            margin: "16px 0 12px 0",
-          }}
-        ></div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <div className="card-actions" style={{ marginTop: 0 }}>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
+          <div className="card-actions">
             <button
               className="action-btn"
               onClick={() => setShowEdit(true)}
