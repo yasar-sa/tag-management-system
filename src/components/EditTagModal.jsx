@@ -9,7 +9,7 @@ function EditTagModal({ tag, close, refresh }) {
   const [selectedCourses,setSelectedCourses] = useState(
     tag.courses.map(c => c._id)
   );
-  const [isActive,setIsActive] = useState(tag.isActive);
+  const [isActive] = useState(tag.isActive);
 
   useEffect(()=>{
     api.get("/courses").then(res=>{

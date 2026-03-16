@@ -64,7 +64,7 @@ useEffect(() => {
         <div className="stat-info">
           <span className="stat-label">Coverage</span>
           <span className="stat-number">
-  { ((stats.activeTags / stats.tags) * 100).toFixed(2) }%
+  { ((stats.activeTags / stats.tags) * 100) }%
 
             </span>
         </div>

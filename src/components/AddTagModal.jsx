@@ -6,7 +6,7 @@ function AddTagModal({ close, refresh }) {
   const [description, setDescription] = useState("");
   const [courses, setCourses] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
-  const [isActive, setIsActive] = useState(true);
+  const [isActive] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
