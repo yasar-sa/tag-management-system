@@ -1,24 +1,24 @@
-import express from 'express';
-import cors from 'cors';
-import mongoose from 'mongoose';
-import tagRoutes from './routes/tagRoutes.js';
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import tagRoutes from "./routes/tagRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
 import familyRoutes from "./routes/familyRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
-
-
+import itemRoutes from "./routes/itemRoutes.js";
 
 const app = express();
 const PORT = 5000;
 
 app.use(cors());
-app.use(express.json()); 
+app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect("mongodb://127.0.0.1:27017/tag-management-system")
-.then(() => console.log("MongoDB Connected"))
-.catch(err => console.log(err));
+mongoose
+  .connect("mongodb://127.0.0.1:27017/tag-management-system")
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log(err));
 
 // Test route
 app.get("/", (req, res) => {
@@ -31,7 +31,7 @@ app.use("/api", groupRoutes);
 app.use("/api", familyRoutes);
 app.use("/api", courseRoutes);
 app.use("/api", dashboardRoutes);
-
+app.use("/api", itemRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -39,7 +39,7 @@ app.use((err, req, res, next) => {
 
   res.status(500).json({
     message: "Server error",
-    error: err.message
+    error: err.message,
   });
 });
 

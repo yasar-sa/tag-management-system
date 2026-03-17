@@ -1,10 +1,37 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-
-
 const API_BASE = "http://localhost:5000/api";
 
-
+const api = {
+  get: (path) =>
+    fetch(`${API_BASE}${path}`).then((r) => {
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    }),
+  post: (path, body) =>
+    fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => {
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    }),
+  put: (path, body) =>
+    fetch(`${API_BASE}${path}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => {
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    }),
+  delete: (path) =>
+    fetch(`${API_BASE}${path}`, { method: "DELETE" }).then((r) => {
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    }),
+};
 
 const extractId = (ref) =>
   typeof ref === "object" && ref !== null
@@ -23,10 +50,14 @@ const normalizeFamily = (f) => ({
   _id: extractId(f._id),
   groups: extractIds(f.groups ?? f.groupIds ?? []),
 });
+const normalizeItem = (item) => ({
+  _id: extractId(item._id),
+  id: item.itemCode || extractId(item._id),
+  label: item.label ?? item.name ?? "Untitled",
+  tagIds: extractIds(item.tags ?? item.tagIds ?? []),
+  score: item.score ?? 0,
+});
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SCORE COMPUTATION
-// ─────────────────────────────────────────────────────────────────────────────
 const avg = (arr) =>
   arr.length === 0
     ? 0
@@ -35,7 +66,7 @@ const itemsForTag = (tagId, items) =>
   items.filter((i) => i.tagIds.includes(tagId));
 const calcTagScore = (tagId, items, scores) => {
   const its = itemsForTag(tagId, items);
-  return its.length === 0 ? null : avg(its.map((i) => scores[i.id]));
+  return its.length === 0 ? null : avg(its.map((i) => scores[i._id] ?? 0));
 };
 const calcGroupScore = (group, items, scores) => {
   const ts = group.tags
@@ -52,9 +83,6 @@ const calcFamilyScore = (family, items, scores, groupById) => {
   return gs.length === 0 ? null : avg(gs);
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STYLE HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 const getColor = (v) =>
   v === null
     ? "#9CA3AF"
@@ -79,7 +107,6 @@ const getBadgeLabel = (v) =>
       : v >= 50
         ? "Moderate"
         : "Needs work";
-
 const TAG_COLORS = [
   { bg: "#EEF2FF", color: "#4338CA" },
   { bg: "#F3E8FF", color: "#7C3AED" },
@@ -89,9 +116,6 @@ const TAG_COLORS = [
   { bg: "#F0FDF4", color: "#15803D" },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SHARED UI PRIMITIVES
-// ─────────────────────────────────────────────────────────────────────────────
 const SectionTitle = ({ children }) => (
   <div
     style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}
@@ -111,7 +135,6 @@ const SectionTitle = ({ children }) => (
     <div style={{ flex: 1, height: 1, background: "rgba(0,0,0,.08)" }} />
   </div>
 );
-
 const AnimatedBar = ({ pct, color }) => (
   <div
     style={{
@@ -132,7 +155,6 @@ const AnimatedBar = ({ pct, color }) => (
     />
   </div>
 );
-
 const Badge = ({ value }) => {
   const s = getBadgeStyle(value);
   return (
@@ -154,7 +176,6 @@ const Badge = ({ value }) => {
     </span>
   );
 };
-
 const AchCard = ({ name, score, sub, accent }) => (
   <div
     style={{
@@ -224,7 +245,6 @@ const AchCard = ({ name, score, sub, accent }) => (
     <AnimatedBar pct={score} color={getColor(score)} />
   </div>
 );
-
 const SkeletonCard = () => (
   <div
     style={{
@@ -249,8 +269,6 @@ const SkeletonCard = () => (
     ))}
   </div>
 );
-
-// Icon buttons
 const IconBtn = ({ onClick, title, children, danger }) => (
   <button
     onClick={onClick}
@@ -276,8 +294,6 @@ const IconBtn = ({ onClick, title, children, danger }) => (
     {children}
   </button>
 );
-
-// Inline editable text
 const InlineEdit = ({ value, onSave, style }) => {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value);
@@ -328,8 +344,6 @@ const InlineEdit = ({ value, onSave, style }) => {
     />
   );
 };
-
-// Tag dropdown picker
 const TagPicker = ({
   availableTags,
   selectedIds,
@@ -339,13 +353,12 @@ const TagPicker = ({
 }) => {
   const ref = useRef();
   useEffect(() => {
-    const handler = (e) => {
+    const h = (e) => {
       if (ref.current && !ref.current.contains(e.target)) onClose();
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
   }, [onClose]);
-
   return (
     <div
       ref={ref}
@@ -442,23 +455,45 @@ const TagPicker = ({
     </div>
   );
 };
+const SavePill = ({ status }) => {
+  const map = {
+    saving: { bg: "#EEF2FF", color: "#4338CA", text: "saving…" },
+    saved: { bg: "#DCFCE7", color: "#166534", text: "✓ saved" },
+    error: { bg: "#FEE2E2", color: "#991B1B", text: "failed" },
+  };
+  const s = map[status];
+  if (!s) return null;
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 600,
+        padding: "2px 8px",
+        borderRadius: 20,
+        background: s.bg,
+        color: s.color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {s.text}
+    </span>
+  );
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EDITABLE ITEMS TABLE
-// ─────────────────────────────────────────────────────────────────────────────
 const EditableItemsTable = ({
   items,
   scores,
   tags,
   tagColorMap,
+  saveStatus,
+  loadingItems,
   onScoreChange,
   onLabelChange,
   onAddItem,
   onDeleteItem,
   onTagsChange,
 }) => {
-  const [pickerOpen, setPickerOpen] = useState(null); // item id with open picker
-
+  const [pickerOpen, setPickerOpen] = useState(null);
   return (
     <div
       style={{
@@ -478,292 +513,315 @@ const EditableItemsTable = ({
         }}
       >
         <SectionTitle>Assessment items</SectionTitle>
-        <button
-          onClick={onAddItem}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {saveStatus._adding && <SavePill status="saving" />}
+          <button
+            onClick={onAddItem}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#4F46E5",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "7px 14px",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "opacity .15s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = ".85")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          >
+            ＋ Add item
+          </button>
+        </div>
+      </div>
+      {loadingItems ? (
+        <div
           style={{
+            padding: "2rem",
+            textAlign: "center",
+            color: "#9CA3AF",
+            fontSize: 13,
             display: "flex",
             alignItems: "center",
-            gap: 6,
-            background: "#4F46E5",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "7px 14px",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "opacity .15s",
+            justifyContent: "center",
+            gap: 8,
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = ".85")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
-          ＋ Add item
-        </button>
-      </div>
-
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", minWidth: 580 }}
-        >
-          <thead>
-            <tr>
-              {[
-                "Item",
-                "Question (double-click to edit)",
-                "Tags",
-                "Score",
-                "Adjust",
-                "",
-              ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    color: "#9CA3AF",
-                    padding: "0 10px 10px 0",
-                    textAlign: "left",
-                    borderBottom: "1px solid rgba(0,0,0,.08)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, idx) => (
-              <tr
-                key={item.id}
-                style={{ borderBottom: ".5px solid rgba(0,0,0,.05)" }}
-              >
-                {/* Item label */}
-                <td
-                  style={{
-                    padding: "10px 10px 10px 0",
-                    verticalAlign: "middle",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      background: "#F5F3FF",
-                      borderRadius: 8,
-                      padding: "4px 10px",
-                      color: "#4F46E5",
-                    }}
-                  >
-                    {item.id}
-                  </span>
-                </td>
-
-                {/* Editable question */}
-                <td
-                  style={{
-                    padding: "10px 10px 10px 0",
-                    verticalAlign: "middle",
-                    minWidth: 160,
-                  }}
-                >
-                  <InlineEdit
-                    value={item.label}
-                    onSave={(val) => onLabelChange(item.id, val)}
-                    style={{ fontSize: 13, color: "#374151" }}
-                  />
-                  <div style={{ fontSize: 10, color: "#C4B5FD", marginTop: 2 }}>
-                    double-click to edit
-                  </div>
-                </td>
-
-                {/* Tags — multi-select via dropdown */}
-                <td
-                  style={{
-                    padding: "10px 10px 10px 0",
-                    verticalAlign: "middle",
-                    minWidth: 160,
-                  }}
-                >
-                  <div
-                    style={{ position: "relative", display: "inline-block" }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 4,
-                        alignItems: "center",
-                      }}
-                    >
-                      {item.tagIds.map((tid) => {
-                        const tag = tags.find((t) => t._id === tid);
-                        const tc = tagColorMap[tid] ?? TAG_COLORS[0];
-                        return tag ? (
-                          <span
-                            key={tid}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              fontSize: 11,
-                              padding: "3px 4px 3px 8px",
-                              borderRadius: 20,
-                              fontWeight: 500,
-                              background: tc.bg,
-                              color: tc.color,
-                            }}
-                          >
-                            {tag.name}
-                            <span
-                              onClick={() =>
-                                onTagsChange(
-                                  item.id,
-                                  item.tagIds.filter((t) => t !== tid),
-                                )
-                              }
-                              style={{
-                                cursor: "pointer",
-                                fontSize: 12,
-                                lineHeight: 1,
-                                opacity: 0.6,
-                                fontWeight: 700,
-                              }}
-                              title="Remove tag"
-                            >
-                              ×
-                            </span>
-                          </span>
-                        ) : null;
-                      })}
-                      <button
-                        onClick={() =>
-                          setPickerOpen(pickerOpen === item.id ? null : item.id)
-                        }
-                        style={{
-                          fontSize: 11,
-                          padding: "3px 8px",
-                          borderRadius: 20,
-                          border: "1.5px dashed #D1D5DB",
-                          background: "none",
-                          cursor: "pointer",
-                          color: "#6B7280",
-                          transition: "border-color .15s,color .15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = "#4F46E5";
-                          e.currentTarget.style.color = "#4F46E5";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = "#D1D5DB";
-                          e.currentTarget.style.color = "#6B7280";
-                        }}
-                      >
-                        ＋ tag
-                      </button>
-                    </div>
-                    {pickerOpen === item.id && (
-                      <TagPicker
-                        availableTags={tags}
-                        selectedIds={item.tagIds}
-                        tagColorMap={tagColorMap}
-                        onToggle={(tid) => {
-                          const next = item.tagIds.includes(tid)
-                            ? item.tagIds.filter((t) => t !== tid)
-                            : [...item.tagIds, tid];
-                          onTagsChange(item.id, next);
-                        }}
-                        onClose={() => setPickerOpen(null)}
-                      />
-                    )}
-                  </div>
-                </td>
-
-                {/* Score */}
-                <td
-                  style={{
-                    padding: "10px 10px 10px 0",
-                    verticalAlign: "middle",
-                    minWidth: 52,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: getColor(scores[item.id]),
-                      transition: "color .3s",
-                    }}
-                  >
-                    {scores[item.id]}%
-                  </span>
-                </td>
-
-                {/* Slider */}
-                <td
-                  style={{
-                    padding: "10px 10px 10px 0",
-                    verticalAlign: "middle",
-                    minWidth: 140,
-                  }}
-                >
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={scores[item.id]}
-                    onChange={(e) =>
-                      onScoreChange(item.id, parseInt(e.target.value))
-                    }
-                    style={{
-                      width: "100%",
-                      accentColor: "#4F46E5",
-                      cursor: "pointer",
-                    }}
-                  />
-                </td>
-
-                {/* Delete */}
-                <td style={{ padding: "10px 0", verticalAlign: "middle" }}>
-                  <IconBtn
-                    onClick={() => onDeleteItem(item.id)}
-                    title="Delete item"
-                    danger
-                  >
-                    🗑
-                  </IconBtn>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {items.length === 0 && (
           <div
             style={{
-              textAlign: "center",
-              padding: "2rem",
-              color: "#9CA3AF",
-              fontSize: 13,
+              width: 16,
+              height: 16,
+              border: "2px solid #E5E7EB",
+              borderTop: "2px solid #4F46E5",
+              borderRadius: "50%",
+              animation: "spin .7s linear infinite",
             }}
+          />
+          Loading items from MongoDB…
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}
           >
-            No items yet. Click <strong>＋ Add item</strong> to get started.
-          </div>
-        )}
-      </div>
+            <thead>
+              <tr>
+                {["#", "Question", "Tags", "Score", "Adjust", "Status", ""].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: 1,
+                        textTransform: "uppercase",
+                        color: "#9CA3AF",
+                        padding: "0 10px 10px 0",
+                        textAlign: "left",
+                        borderBottom: "1px solid rgba(0,0,0,.08)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr
+                  key={item._id}
+                  style={{ borderBottom: ".5px solid rgba(0,0,0,.05)" }}
+                >
+                  <td
+                    style={{
+                      padding: "10px 10px 10px 0",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "monospace",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        background: "#F5F3FF",
+                        borderRadius: 8,
+                        padding: "4px 10px",
+                        color: "#4F46E5",
+                      }}
+                    >
+                      {item.id}
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 10px 10px 0",
+                      verticalAlign: "middle",
+                      minWidth: 160,
+                    }}
+                  >
+                    <InlineEdit
+                      value={item.label}
+                      onSave={(val) => onLabelChange(item._id, val)}
+                      style={{ fontSize: 13, color: "#374151" }}
+                    />
+                    <div
+                      style={{ fontSize: 10, color: "#C4B5FD", marginTop: 2 }}
+                    >
+                      double-click to edit
+                    </div>
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 10px 10px 0",
+                      verticalAlign: "middle",
+                      minWidth: 160,
+                    }}
+                  >
+                    <div
+                      style={{ position: "relative", display: "inline-block" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 4,
+                          alignItems: "center",
+                        }}
+                      >
+                        {item.tagIds.map((tid) => {
+                          const tag = tags.find((t) => t._id === tid);
+                          const tc = tagColorMap[tid] ?? TAG_COLORS[0];
+                          return tag ? (
+                            <span
+                              key={tid}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontSize: 11,
+                                padding: "3px 4px 3px 8px",
+                                borderRadius: 20,
+                                fontWeight: 500,
+                                background: tc.bg,
+                                color: tc.color,
+                              }}
+                            >
+                              {tag.name}
+                              <span
+                                onClick={() =>
+                                  onTagsChange(
+                                    item._id,
+                                    item.tagIds.filter((t) => t !== tid),
+                                  )
+                                }
+                                style={{
+                                  cursor: "pointer",
+                                  fontSize: 12,
+                                  lineHeight: 1,
+                                  opacity: 0.6,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ×
+                              </span>
+                            </span>
+                          ) : null;
+                        })}
+                        <button
+                          onClick={() =>
+                            setPickerOpen(
+                              pickerOpen === item._id ? null : item._id,
+                            )
+                          }
+                          style={{
+                            fontSize: 11,
+                            padding: "3px 8px",
+                            borderRadius: 20,
+                            border: "1.5px dashed #D1D5DB",
+                            background: "none",
+                            cursor: "pointer",
+                            color: "#6B7280",
+                            transition: "border-color .15s,color .15s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "#4F46E5";
+                            e.currentTarget.style.color = "#4F46E5";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "#D1D5DB";
+                            e.currentTarget.style.color = "#6B7280";
+                          }}
+                        >
+                          ＋ tag
+                        </button>
+                      </div>
+                      {pickerOpen === item._id && (
+                        <TagPicker
+                          availableTags={tags}
+                          selectedIds={item.tagIds}
+                          tagColorMap={tagColorMap}
+                          onToggle={(tid) => {
+                            const next = item.tagIds.includes(tid)
+                              ? item.tagIds.filter((t) => t !== tid)
+                              : [...item.tagIds, tid];
+                            onTagsChange(item._id, next);
+                          }}
+                          onClose={() => setPickerOpen(null)}
+                        />
+                      )}
+                    </div>
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 10px 10px 0",
+                      verticalAlign: "middle",
+                      minWidth: 52,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "monospace",
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: getColor(scores[item._id] ?? 0),
+                        transition: "color .3s",
+                      }}
+                    >
+                      {scores[item._id] ?? 0}%
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 10px 10px 0",
+                      verticalAlign: "middle",
+                      minWidth: 140,
+                    }}
+                  >
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={scores[item._id] ?? 0}
+                      onChange={(e) =>
+                        onScoreChange(item._id, parseInt(e.target.value))
+                      }
+                      style={{
+                        width: "100%",
+                        accentColor: "#4F46E5",
+                        cursor: "pointer",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 10px 10px 0",
+                      verticalAlign: "middle",
+                      minWidth: 64,
+                    }}
+                  >
+                    <SavePill status={saveStatus[item._id]} />
+                  </td>
+                  <td style={{ padding: "10px 0", verticalAlign: "middle" }}>
+                    <IconBtn
+                      onClick={() => onDeleteItem(item._id)}
+                      title="Delete item"
+                      danger
+                    >
+                      🗑
+                    </IconBtn>
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={7}
+                    style={{
+                      padding: "2rem",
+                      textAlign: "center",
+                      color: "#9CA3AF",
+                      fontSize: 13,
+                    }}
+                  >
+                    No items yet. Click <strong>＋ Add item</strong> to get
+                    started.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
-let _itemCounter = 6;
 
 export default function AnalyticsDashboard({ onClose }) {
   const [tags, setTags] = useState([]);
@@ -772,20 +830,14 @@ export default function AnalyticsDashboard({ onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Editable items
-  const [items, setItems] = useState([
-    { id: "Q1", label: "Stack operations", tagIds: [], score: 88 },
-    { id: "Q2", label: "Queue traversal", tagIds: [], score: 68 },
-    { id: "Q3", label: "Pointer arithmetic", tagIds: [], score: 78 },
-    { id: "Q4", label: "Algorithm complexity", tagIds: [], score: 58 },
-    { id: "Q5", label: "Sorting algorithms", tagIds: [], score: 98 },
-    { id: "Q6", label: "DSA", tagIds: [], score: 98 },
-  ]);
-  const [scores, setScores] = useState(
-    Object.fromEntries(items.map((i) => [i.id, i.score])),
-  );
+  const [items, setItems] = useState([]);
+  const [scores, setScores] = useState({});
+  const [loadingItems, setLoadingItems] = useState(true);
+  const [itemsError, setItemsError] = useState(null);
+  const [saveStatus, setSaveStatus] = useState({});
 
-  // ── Fetch tags/groups/families from API ──
+  const saveTimers = useRef({});
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -798,35 +850,15 @@ export default function AnalyticsDashboard({ onClose }) {
       if (!tR.ok) throw new Error(`Tags ${tR.status}`);
       if (!gR.ok) throw new Error(`Groups ${gR.status}`);
       if (!fR.ok) throw new Error(`Families ${fR.status}`);
-
       const [rawT, rawG, rawF] = await Promise.all([
         tR.json(),
         gR.json(),
         fR.json(),
       ]);
       const arr = (r) => (Array.isArray(r) ? r : (r.data ?? []));
-
-      const normTags = arr(rawT).map(normalizeTag);
-      const normGroups = arr(rawG).map(normalizeGroup);
-      const normFamilies = arr(rawF).map(normalizeFamily);
-
-      setTags(normTags);
-      setGroups(normGroups);
-      setFamilies(normFamilies);
-
-      // Auto-assign first available tag to demo items that have no tags yet
-      if (normTags.length > 0) {
-        const ids = normTags.map((t) => t._id);
-        setItems((prev) =>
-          prev.map((item, i) => ({
-            ...item,
-            tagIds:
-              item.tagIds.length > 0
-                ? item.tagIds
-                : ids.slice(i % ids.length, (i % ids.length) + 1 + (i % 2)),
-          })),
-        );
-      }
+      setTags(arr(rawT).map(normalizeTag));
+      setGroups(arr(rawG).map(normalizeGroup));
+      setFamilies(arr(rawF).map(normalizeFamily));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -834,49 +866,142 @@ export default function AnalyticsDashboard({ onClose }) {
     }
   }, []);
 
+  const fetchItems = useCallback(async () => {
+    setLoadingItems(true);
+    setItemsError(null);
+    try {
+      const raw = await api.get("/items");
+      const arr = Array.isArray(raw) ? raw : (raw.data ?? []);
+      const normalized = arr.map(normalizeItem);
+      setItems(normalized);
+      setScores(Object.fromEntries(normalized.map((i) => [i._id, i.score])));
+    } catch (e) {
+      setItemsError(e.message);
+    } finally {
+      setLoadingItems(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    fetchItems();
+  }, [fetchData, fetchItems]);
 
-  // ── Item CRUD ──
-  const handleScoreChange = useCallback((id, val) => {
-    setScores((prev) => ({ ...prev, [id]: val }));
+  const debouncedSave = useCallback((itemId, payload) => {
+    setSaveStatus((prev) => ({ ...prev, [itemId]: "saving" }));
+    clearTimeout(saveTimers.current[itemId]);
+    saveTimers.current[itemId] = setTimeout(async () => {
+      try {
+        await api.put(`/items/${itemId}`, payload);
+        setSaveStatus((prev) => ({ ...prev, [itemId]: "saved" }));
+        setTimeout(
+          () => setSaveStatus((prev) => ({ ...prev, [itemId]: null })),
+          2000,
+        );
+      } catch {
+        setSaveStatus((prev) => ({ ...prev, [itemId]: "error" }));
+      }
+    }, 600);
   }, []);
 
-  const handleLabelChange = useCallback((id, val) => {
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, label: val } : i)),
-    );
+  const handleAddItem = useCallback(async () => {
+    setSaveStatus((prev) => ({ ...prev, _adding: "saving" }));
+    try {
+      const created = await api.post("/items", {
+        label: "New question",
+        score: 70,
+        tags: [],
+      });
+      const normalized = normalizeItem(created.data ?? created);
+      setItems((prev) => [...prev, normalized]);
+      setScores((prev) => ({ ...prev, [normalized._id]: normalized.score }));
+      setSaveStatus((prev) => ({ ...prev, _adding: null }));
+    } catch (e) {
+      setSaveStatus((prev) => ({ ...prev, _adding: null }));
+      alert(`Failed to create item: ${e.message}`);
+    }
   }, []);
 
-  const handleTagsChange = useCallback((id, tagIds) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, tagIds } : i)));
+  const handleLabelChange = useCallback(
+    (mongoId, val) => {
+      setItems((prev) => {
+        const next = prev.map((i) =>
+          i._id === mongoId ? { ...i, label: val } : i,
+        );
+        const item = next.find((i) => i._id === mongoId);
+        if (item)
+          debouncedSave(mongoId, {
+            itemCode: item.id,
+            label: val,
+            score: scores[mongoId] ?? item.score,
+            tags: item.tagIds,
+          });
+        return next;
+      });
+    },
+    [debouncedSave, scores],
+  );
+
+  const handleScoreChange = useCallback(
+    (mongoId, val) => {
+      setScores((prev) => ({ ...prev, [mongoId]: val }));
+      setItems((prev) => {
+        const item = prev.find((i) => i._id === mongoId);
+        if (item)
+          debouncedSave(mongoId, {
+            itemCode: item.id,
+            label: item.label,
+            score: val,
+            tags: item.tagIds,
+          });
+        return prev;
+      });
+    },
+    [debouncedSave],
+  );
+
+  const handleTagsChange = useCallback(
+    (mongoId, tagIds) => {
+      setItems((prev) => {
+        const next = prev.map((i) =>
+          i._id === mongoId ? { ...i, tagIds } : i,
+        );
+        const item = next.find((i) => i._id === mongoId);
+        if (item)
+          debouncedSave(mongoId, {
+            itemCode: item.id,
+            label: item.label,
+            score: scores[mongoId] ?? item.score,
+            tags: tagIds,
+          });
+        return next;
+      });
+    },
+    [debouncedSave, scores],
+  );
+
+  const handleDeleteItem = useCallback(async (mongoId) => {
+    if (!window.confirm("Delete this item? This cannot be undone.")) return;
+    setSaveStatus((prev) => ({ ...prev, [mongoId]: "saving" }));
+    try {
+      await api.delete(`/items/${mongoId}`);
+      setItems((prev) => prev.filter((i) => i._id !== mongoId));
+      setScores((prev) => {
+        const n = { ...prev };
+        delete n[mongoId];
+        return n;
+      });
+    } catch (e) {
+      setSaveStatus((prev) => ({ ...prev, [mongoId]: "error" }));
+      alert(`Failed to delete: ${e.message}`);
+    }
   }, []);
 
-  const handleAddItem = useCallback(() => {
-    _itemCounter++;
-    const id = `Q${_itemCounter}`;
-    const newItem = { id, label: "New question", tagIds: [], score: 70 };
-    setItems((prev) => [...prev, newItem]);
-    setScores((prev) => ({ ...prev, [id]: 70 }));
-  }, []);
-
-  const handleDeleteItem = useCallback((id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    setScores((prev) => {
-      const n = { ...prev };
-      delete n[id];
-      return n;
-    });
-  }, []);
-
-  // ── Lookups & computations ──
   const tagById = Object.fromEntries(tags.map((t) => [t._id, t]));
   const groupById = Object.fromEntries(groups.map((g) => [g._id, g]));
   const tagColorMap = Object.fromEntries(
     tags.map((t, i) => [t._id, TAG_COLORS[i % TAG_COLORS.length]]),
   );
-
   const tagScores = tags.map((t) => ({
     ...t,
     score: calcTagScore(t._id, items, scores),
@@ -899,9 +1024,8 @@ export default function AnalyticsDashboard({ onClose }) {
         paddingBottom: 60,
       }}
     >
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      {/* Hero */}
       <div
         style={{
           background:
@@ -963,11 +1087,50 @@ export default function AnalyticsDashboard({ onClose }) {
           >
             Analytics Dashboard
           </h1>
+          <p
+            style={{
+              fontSize: 13,
+              opacity: 0.75,
+              maxWidth: 500,
+              lineHeight: 1.6,
+            }}
+          >
+            Items persist in MongoDB.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginTop: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            {[
+              ["Tags", tags.length],
+              ["Groups", groups.length],
+              ["Families", families.length],
+              ["Items", items.length],
+            ].map(([l, v]) => (
+              <div
+                key={l}
+                style={{
+                  background: "rgba(255,255,255,.1)",
+                  borderRadius: 10,
+                  padding: "8px 18px",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: 20, fontWeight: 700 }}>
+                  {loading || loadingItems ? "…" : v}
+                </div>
+                <div style={{ fontSize: 11, opacity: 0.7 }}>{l}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "0 1rem" }}>
-        {/* Error */}
         {error && (
           <div
             style={{
@@ -991,7 +1154,7 @@ export default function AnalyticsDashboard({ onClose }) {
                   marginBottom: 2,
                 }}
               >
-                Failed to load data
+                Failed to load taxonomy
               </div>
               <div style={{ fontSize: 12, color: "#991B1B" }}>{error}</div>
             </div>
@@ -1012,13 +1175,60 @@ export default function AnalyticsDashboard({ onClose }) {
             </button>
           </div>
         )}
+        {itemsError && (
+          <div
+            style={{
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              borderRadius: 12,
+              padding: "1rem 1.25rem",
+              marginBottom: "1.5rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#DC2626",
+                  marginBottom: 2,
+                }}
+              >
+                Failed to load items
+              </div>
+              <div style={{ fontSize: 12, color: "#991B1B" }}>
+                {itemsError} — make sure GET /api/items exists
+              </div>
+            </div>
+            <button
+              onClick={fetchItems}
+              style={{
+                background: "#DC2626",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "6px 14px",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-        {/* Editable items table */}
         <EditableItemsTable
           items={items}
           scores={scores}
           tags={tags}
           tagColorMap={tagColorMap}
+          saveStatus={saveStatus}
+          loadingItems={loadingItems}
           onScoreChange={handleScoreChange}
           onLabelChange={handleLabelChange}
           onTagsChange={handleTagsChange}
@@ -1026,7 +1236,6 @@ export default function AnalyticsDashboard({ onClose }) {
           onDeleteItem={handleDeleteItem}
         />
 
-        {/* Tag Achievement */}
         <SectionTitle>
           Tag achievement{" "}
           <span
@@ -1071,7 +1280,6 @@ export default function AnalyticsDashboard({ onClose }) {
               })}
         </div>
 
-        {/* Group Achievement */}
         <SectionTitle>
           Group achievement{" "}
           <span
@@ -1115,7 +1323,6 @@ export default function AnalyticsDashboard({ onClose }) {
               })}
         </div>
 
-        {/* Family Achievement */}
         <SectionTitle>
           Family achievement{" "}
           <span
@@ -1159,7 +1366,6 @@ export default function AnalyticsDashboard({ onClose }) {
               })}
         </div>
 
-        {/* Mini charts */}
         {!loading && !error && (
           <div
             style={{
@@ -1182,7 +1388,7 @@ export default function AnalyticsDashboard({ onClose }) {
                 {
                   title: "Item scores",
                   labels: items.map((i) => i.id),
-                  values: items.map((i) => scores[i.id]),
+                  values: items.map((i) => scores[i._id] ?? 0),
                 },
                 {
                   title: "Tag achievement",
@@ -1200,7 +1406,7 @@ export default function AnalyticsDashboard({ onClose }) {
                   values: familyScores.map((f) => f.score),
                 },
               ].map(({ title, labels, values }) => {
-                const BAR_AREA = 140; // px — fixed height for the bar area only
+                const BAR_AREA = 140;
                 return (
                   <div key={title}>
                     <div
@@ -1213,7 +1419,6 @@ export default function AnalyticsDashboard({ onClose }) {
                     >
                       {title}
                     </div>
-                    {/* value labels row */}
                     <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                       {labels.map((lbl, i) => {
                         const v = values[i];
@@ -1234,7 +1439,6 @@ export default function AnalyticsDashboard({ onClose }) {
                         );
                       })}
                     </div>
-                    {/* bars row — fixed height container, bars grow from bottom */}
                     <div
                       style={{
                         display: "flex",
@@ -1247,8 +1451,7 @@ export default function AnalyticsDashboard({ onClose }) {
                         position: "relative",
                       }}
                     >
-                      {/* horizontal guide lines */}
-                      {[25, 50, 75, 100].map((pct) => (
+                      {[25, 50, 75].map((pct) => (
                         <div
                           key={pct}
                           style={{
@@ -1257,10 +1460,7 @@ export default function AnalyticsDashboard({ onClose }) {
                             right: 0,
                             bottom: `${(pct * BAR_AREA) / 100}px`,
                             height: 1,
-                            background:
-                              pct === 50
-                                ? "rgba(0,0,0,.08)"
-                                : "rgba(0,0,0,.04)",
+                            background: "rgba(0,0,0,.05)",
                             zIndex: 0,
                           }}
                         />
@@ -1289,9 +1489,8 @@ export default function AnalyticsDashboard({ onClose }) {
                         );
                       })}
                     </div>
-                    {/* label row */}
                     <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-                      {labels.map((lbl, i) => (
+                      {labels.map((lbl) => (
                         <div
                           key={lbl}
                           style={{
@@ -1314,7 +1513,6 @@ export default function AnalyticsDashboard({ onClose }) {
           </div>
         )}
 
-        {/* Legend */}
         <div
           style={{
             display: "flex",
