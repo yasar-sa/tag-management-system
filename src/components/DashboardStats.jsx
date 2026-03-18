@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api/api";
 import { FaTags, FaUsers, FaLayerGroup, FaEye } from "react-icons/fa";
 
-function DashboardStats({ refreshKey }) {
+function DashboardStats({ refreshKey  , onStatsLoad}) {
   const [stats, setStats] = useState({
     tags: 0,
     groups: 0,
@@ -16,6 +16,7 @@ useEffect(() => {
     .get("/dashboard")
     .then((res) => {
       setStats(res.data);
+      onStatsLoad?.(res.data);
     })
     .catch((err) => console.error("Error fetching stats:", err));
 }, [refreshKey]);

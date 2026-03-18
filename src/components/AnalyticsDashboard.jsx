@@ -31,8 +31,20 @@ const api = {
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
       return r.json();
     }),
+      patch: (path, body) =>
+    fetch(`${API_BASE}${path}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => {
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    }),
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NORMALIZERS
+// ─────────────────────────────────────────────────────────────────────────────
 const extractId = (ref) =>
   typeof ref === "object" && ref !== null
     ? ref._id?.toString()
@@ -58,31 +70,9 @@ const normalizeItem = (item) => ({
   score: item.score ?? 0,
 });
 
-const avg = (arr) =>
-  arr.length === 0
-    ? 0
-    : Math.round(arr.reduce((s, v) => s + v, 0) / arr.length);
-const itemsForTag = (tagId, items) =>
-  items.filter((i) => i.tagIds.includes(tagId));
-const calcTagScore = (tagId, items, scores) => {
-  const its = itemsForTag(tagId, items);
-  return its.length === 0 ? null : avg(its.map((i) => scores[i._id] ?? 0));
-};
-const calcGroupScore = (group, items, scores) => {
-  const ts = group.tags
-    .map((tid) => calcTagScore(tid, items, scores))
-    .filter((v) => v !== null);
-  return ts.length === 0 ? null : avg(ts);
-};
-const calcFamilyScore = (family, items, scores, groupById) => {
-  const gs = family.groups
-    .map((gid) => groupById[gid])
-    .filter(Boolean)
-    .map((g) => calcGroupScore(g, items, scores))
-    .filter((v) => v !== null);
-  return gs.length === 0 ? null : avg(gs);
-};
-
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
 const getColor = (v) =>
   v === null
     ? "#9CA3AF"
@@ -107,6 +97,7 @@ const getBadgeLabel = (v) =>
       : v >= 50
         ? "Moderate"
         : "Needs work";
+
 const TAG_COLORS = [
   { bg: "#EEF2FF", color: "#4338CA" },
   { bg: "#F3E8FF", color: "#7C3AED" },
@@ -116,6 +107,9 @@ const TAG_COLORS = [
   { bg: "#F0FDF4", color: "#15803D" },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// UI PRIMITIVES
+// ─────────────────────────────────────────────────────────────────────────────
 const SectionTitle = ({ children }) => (
   <div
     style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}
@@ -135,6 +129,7 @@ const SectionTitle = ({ children }) => (
     <div style={{ flex: 1, height: 1, background: "rgba(0,0,0,.08)" }} />
   </div>
 );
+
 const AnimatedBar = ({ pct, color }) => (
   <div
     style={{
@@ -155,6 +150,7 @@ const AnimatedBar = ({ pct, color }) => (
     />
   </div>
 );
+
 const Badge = ({ value }) => {
   const s = getBadgeStyle(value);
   return (
@@ -176,7 +172,9 @@ const Badge = ({ value }) => {
     </span>
   );
 };
-const AchCard = ({ name, score, sub, accent }) => (
+
+// analyticsLoading passed as prop — AchCard is outside main component scope
+const AchCard = ({ name, score, sub, accent, analyticsLoading }) => (
   <div
     style={{
       background: "#fff",
@@ -221,30 +219,35 @@ const AchCard = ({ name, score, sub, accent }) => (
       {name}
       <Badge value={score} />
     </div>
-    <div
-      style={{
-        fontSize: 11,
-        color: "#6B7280",
-        marginBottom: 8,
-        lineHeight: 1.5,
-      }}
-    >
-      {sub}
-    </div>
+    {sub && (
+      <div
+        style={{
+          fontSize: 11,
+          color: "#6B7280",
+          marginBottom: 8,
+          lineHeight: 1.5,
+        }}
+      >
+        {sub}
+      </div>
+    )}
     <div
       style={{
         fontSize: 22,
         fontWeight: 600,
         color: getColor(score),
         marginBottom: 6,
-        transition: "color .4s",
+        opacity: analyticsLoading ? 0.4 : 1,
+        transition: "color .4s, opacity .3s",
+        animation: analyticsLoading ? "pulse 1s infinite" : "none",
       }}
     >
-      {score === null ? "—" : `${score}%`}
+      {score === null ? "\u2014" : `${score}%`}
     </div>
     <AnimatedBar pct={score} color={getColor(score)} />
   </div>
 );
+
 const SkeletonCard = () => (
   <div
     style={{
@@ -269,6 +272,7 @@ const SkeletonCard = () => (
     ))}
   </div>
 );
+
 const IconBtn = ({ onClick, title, children, danger }) => (
   <button
     onClick={onClick}
@@ -294,6 +298,7 @@ const IconBtn = ({ onClick, title, children, danger }) => (
     {children}
   </button>
 );
+
 const InlineEdit = ({ value, onSave, style }) => {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value);
@@ -344,6 +349,7 @@ const InlineEdit = ({ value, onSave, style }) => {
     />
   );
 };
+
 const TagPicker = ({
   availableTags,
   selectedIds,
@@ -455,10 +461,11 @@ const TagPicker = ({
     </div>
   );
 };
+
 const SavePill = ({ status }) => {
   const map = {
-    saving: { bg: "#EEF2FF", color: "#4338CA", text: "saving…" },
-    saved: { bg: "#DCFCE7", color: "#166534", text: "✓ saved" },
+    saving: { bg: "#EEF2FF", color: "#4338CA", text: "saving..." },
+    saved: { bg: "#DCFCE7", color: "#166534", text: "saved" },
     error: { bg: "#FEE2E2", color: "#991B1B", text: "failed" },
   };
   const s = map[status];
@@ -480,6 +487,9 @@ const SavePill = ({ status }) => {
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// EDITABLE ITEMS TABLE
+// ─────────────────────────────────────────────────────────────────────────────
 const EditableItemsTable = ({
   items,
   scores,
@@ -534,10 +544,11 @@ const EditableItemsTable = ({
             onMouseEnter={(e) => (e.currentTarget.style.opacity = ".85")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
-            ＋ Add item
+            + Add item
           </button>
         </div>
       </div>
+
       {loadingItems ? (
         <div
           style={{
@@ -561,7 +572,7 @@ const EditableItemsTable = ({
               animation: "spin .7s linear infinite",
             }}
           />
-          Loading items from MongoDB…
+          Loading items from MongoDB...
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -688,7 +699,7 @@ const EditableItemsTable = ({
                                   fontWeight: 700,
                                 }}
                               >
-                                ×
+                                x
                               </span>
                             </span>
                           ) : null;
@@ -718,7 +729,7 @@ const EditableItemsTable = ({
                             e.currentTarget.style.color = "#6B7280";
                           }}
                         >
-                          ＋ tag
+                          + tag
                         </button>
                       </div>
                       {pickerOpen === item._id && (
@@ -772,6 +783,9 @@ const EditableItemsTable = ({
                       onChange={(e) =>
                         onScoreChange(item._id, parseInt(e.target.value))
                       }
+                      onMouseUp={(e) =>
+                        onScoreChange(item._id, parseInt(e.target.value), true)
+                      }
                       style={{
                         width: "100%",
                         accentColor: "#4F46E5",
@@ -794,7 +808,7 @@ const EditableItemsTable = ({
                       title="Delete item"
                       danger
                     >
-                      🗑
+                      delete
                     </IconBtn>
                   </td>
                 </tr>
@@ -810,7 +824,7 @@ const EditableItemsTable = ({
                       fontSize: 13,
                     }}
                   >
-                    No items yet. Click <strong>＋ Add item</strong> to get
+                    No items yet. Click <strong>+ Add item</strong> to get
                     started.
                   </td>
                 </tr>
@@ -823,7 +837,17 @@ const EditableItemsTable = ({
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
 export default function AnalyticsDashboard({ onClose }) {
+
+
+  const [tagScoreMap, setTagScoreMap] = useState({});
+  const [groupScoreMap, setGroupScoreMap] = useState({});
+  const [familyScoreMap, setFamilyScoreMap] = useState({});
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   const [tags, setTags] = useState([]);
   const [groups, setGroups] = useState([]);
   const [families, setFamilies] = useState([]);
@@ -838,6 +862,35 @@ export default function AnalyticsDashboard({ onClose }) {
 
   const saveTimers = useRef({});
 
+  // ── Fetch analytics — stores as maps not arrays ───────────────────────────
+  const fetchAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await api.get("/analytics");
+
+      // Convert each array to a { [_id]: score } map
+      // Also index by name as fallback in case _id format differs
+      const toMap = (arr) => {
+        const m = {};
+        (arr || []).forEach((item) => {
+          const id = extractId(item._id);
+          if (id) m[id] = item.score ?? null;
+          if (item.name) m[item.name] = item.score ?? null;
+        });
+        return m;
+      };
+
+      setTagScoreMap(toMap(data.tags));
+      setGroupScoreMap(toMap(data.groups));
+      setFamilyScoreMap(toMap(data.families));
+    } catch (err) {
+      console.error("Analytics error:", err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  // ── Fetch taxonomy ────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -866,6 +919,7 @@ export default function AnalyticsDashboard({ onClose }) {
     }
   }, []);
 
+  // ── Fetch items ───────────────────────────────────────────────────────────
   const fetchItems = useCallback(async () => {
     setLoadingItems(true);
     setItemsError(null);
@@ -885,43 +939,62 @@ export default function AnalyticsDashboard({ onClose }) {
   useEffect(() => {
     fetchData();
     fetchItems();
-  }, [fetchData, fetchItems]);
+    fetchAnalytics();
+  }, [fetchData, fetchItems, fetchAnalytics]);
 
-  const debouncedSave = useCallback((itemId, payload) => {
-    setSaveStatus((prev) => ({ ...prev, [itemId]: "saving" }));
-    clearTimeout(saveTimers.current[itemId]);
-    saveTimers.current[itemId] = setTimeout(async () => {
-      try {
-        await api.put(`/items/${itemId}`, payload);
-        setSaveStatus((prev) => ({ ...prev, [itemId]: "saved" }));
-        setTimeout(
-          () => setSaveStatus((prev) => ({ ...prev, [itemId]: null })),
-          2000,
-        );
-      } catch {
-        setSaveStatus((prev) => ({ ...prev, [itemId]: "error" }));
+  // ── Debounced save ────────────────────────────────────────────────────────
+  // refetchAnalytics flag: true for score/tag changes, false for label changes
+  const debouncedSave = useCallback(
+    (itemId, payload, refetchAnalytics = false) => {
+      setSaveStatus((prev) => ({ ...prev, [itemId]: "saving" }));
+      clearTimeout(saveTimers.current[itemId]);
+      saveTimers.current[itemId] = setTimeout(async () => {
+        try {
+          // await api.put(`/items/${itemId}`, payload);
+          await api.patch(`/items/${itemId}`, payload);
+          if (refetchAnalytics) await fetchAnalytics();
+          setSaveStatus((prev) => ({ ...prev, [itemId]: "saved" }));
+          setTimeout(
+            () => setSaveStatus((prev) => ({ ...prev, [itemId]: null })),
+            2000,
+          );
+        } catch {
+          setSaveStatus((prev) => ({ ...prev, [itemId]: "error" }));
+        }
+      }, 600);
+    },
+    [fetchAnalytics],
+  );
+
+  // ── CRUD handlers ─────────────────────────────────────────────────────────
+
+  // onChange: update local score display instantly (slider moves smoothly)
+  // onMouseUp (commit=true): save to DB and refetch analytics
+  const handleScoreChange = useCallback(
+    (mongoId, val, commit = false) => {
+      setScores((prev) => ({ ...prev, [mongoId]: val }));
+      if (commit) {
+        setItems((prev) => {
+          const item = prev.find((i) => i._id === mongoId);
+          if (item)
+            debouncedSave(
+              mongoId,
+              {
+                // itemCode: item.id,
+                // label: item.label,
+                score: val,
+                // tags: item.tagIds,
+              },
+              true,
+            );
+          return prev;
+        });
       }
-    }, 600);
-  }, []);
+    },
+    [debouncedSave],
+  );
 
-  const handleAddItem = useCallback(async () => {
-    setSaveStatus((prev) => ({ ...prev, _adding: "saving" }));
-    try {
-      const created = await api.post("/items", {
-        label: "New question",
-        score: 70,
-        tags: [],
-      });
-      const normalized = normalizeItem(created.data ?? created);
-      setItems((prev) => [...prev, normalized]);
-      setScores((prev) => ({ ...prev, [normalized._id]: normalized.score }));
-      setSaveStatus((prev) => ({ ...prev, _adding: null }));
-    } catch (e) {
-      setSaveStatus((prev) => ({ ...prev, _adding: null }));
-      alert(`Failed to create item: ${e.message}`);
-    }
-  }, []);
-
+  // Label changes don't affect scores — no analytics refetch
   const handleLabelChange = useCallback(
     (mongoId, val) => {
       setItems((prev) => {
@@ -930,36 +1003,23 @@ export default function AnalyticsDashboard({ onClose }) {
         );
         const item = next.find((i) => i._id === mongoId);
         if (item)
-          debouncedSave(mongoId, {
-            itemCode: item.id,
-            label: val,
-            score: scores[mongoId] ?? item.score,
-            tags: item.tagIds,
-          });
+          debouncedSave(
+            mongoId,
+            {
+              // itemCode: item.id,
+              // label: val,
+              score: scores[mongoId] ?? item.score,
+              // tags: item.tagIds,
+            },
+            false,
+          );
         return next;
       });
     },
     [debouncedSave, scores],
   );
 
-  const handleScoreChange = useCallback(
-    (mongoId, val) => {
-      setScores((prev) => ({ ...prev, [mongoId]: val }));
-      setItems((prev) => {
-        const item = prev.find((i) => i._id === mongoId);
-        if (item)
-          debouncedSave(mongoId, {
-            itemCode: item.id,
-            label: item.label,
-            score: val,
-            tags: item.tagIds,
-          });
-        return prev;
-      });
-    },
-    [debouncedSave],
-  );
-
+  // Tag changes affect group/family scores — refetch analytics
   const handleTagsChange = useCallback(
     (mongoId, tagIds) => {
       setItems((prev) => {
@@ -968,53 +1028,73 @@ export default function AnalyticsDashboard({ onClose }) {
         );
         const item = next.find((i) => i._id === mongoId);
         if (item)
-          debouncedSave(mongoId, {
-            itemCode: item.id,
-            label: item.label,
-            score: scores[mongoId] ?? item.score,
-            tags: tagIds,
-          });
+          debouncedSave(
+            mongoId,
+            {
+              // itemCode: item.id,
+              // label: item.label,
+              score: scores[mongoId] ?? item.score,
+              // tags: tagIds,
+            },
+            true,
+          );
         return next;
       });
     },
     [debouncedSave, scores],
   );
 
-  const handleDeleteItem = useCallback(async (mongoId) => {
-    if (!window.confirm("Delete this item? This cannot be undone.")) return;
-    setSaveStatus((prev) => ({ ...prev, [mongoId]: "saving" }));
+  const handleAddItem = useCallback(async () => {
+    setSaveStatus((prev) => ({ ...prev, _adding: "saving" }));
     try {
-      await api.delete(`/items/${mongoId}`);
-      setItems((prev) => prev.filter((i) => i._id !== mongoId));
-      setScores((prev) => {
-        const n = { ...prev };
-        delete n[mongoId];
-        return n;
+      const maxNum = items.reduce(
+        (max, item) =>
+          Math.max(max, parseInt(item.id?.replace(/\D/g, "")) || 0),
+        0,
+      );
+      const created = await api.post("/items", {
+        itemCode: `Q${maxNum + 1}`,
+        label: "New question",
+        score: 70,
+        tags: [],
       });
+      const normalized = normalizeItem(created.data ?? created);
+      setItems((prev) => [...prev, normalized]);
+      setScores((prev) => ({ ...prev, [normalized._id]: normalized.score }));
+      setSaveStatus((prev) => ({ ...prev, _adding: null }));
+      // No analytics refetch — new item has no tags yet, won't affect scores
     } catch (e) {
-      setSaveStatus((prev) => ({ ...prev, [mongoId]: "error" }));
-      alert(`Failed to delete: ${e.message}`);
+      setSaveStatus((prev) => ({ ...prev, _adding: null }));
+      alert(`Failed to create item: ${e.message}`);
     }
-  }, []);
+  }, [items]);
 
-  const tagById = Object.fromEntries(tags.map((t) => [t._id, t]));
-  const groupById = Object.fromEntries(groups.map((g) => [g._id, g]));
+  const handleDeleteItem = useCallback(
+    async (mongoId) => {
+      if (!window.confirm("Delete this item? This cannot be undone.")) return;
+      setSaveStatus((prev) => ({ ...prev, [mongoId]: "saving" }));
+      try {
+        await api.delete(`/items/${mongoId}`);
+        setItems((prev) => prev.filter((i) => i._id !== mongoId));
+        setScores((prev) => {
+          const n = { ...prev };
+          delete n[mongoId];
+          return n;
+        });
+        await fetchAnalytics();
+      } catch (e) {
+        setSaveStatus((prev) => ({ ...prev, [mongoId]: "error" }));
+        alert(`Failed to delete: ${e.message}`);
+      }
+    },
+    [fetchAnalytics],
+  );
+
   const tagColorMap = Object.fromEntries(
     tags.map((t, i) => [t._id, TAG_COLORS[i % TAG_COLORS.length]]),
   );
-  const tagScores = tags.map((t) => ({
-    ...t,
-    score: calcTagScore(t._id, items, scores),
-  }));
-  const groupScores = groups.map((g) => ({
-    ...g,
-    score: calcGroupScore(g, items, scores),
-  }));
-  const familyScores = families.map((f) => ({
-    ...f,
-    score: calcFamilyScore(f, items, scores, groupById),
-  }));
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
       style={{
@@ -1026,6 +1106,7 @@ export default function AnalyticsDashboard({ onClose }) {
     >
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
+      {/* Hero */}
       <div
         style={{
           background:
@@ -1074,7 +1155,7 @@ export default function AnalyticsDashboard({ onClose }) {
                 fontWeight: 600,
               }}
             >
-              ← Back to Dashboard
+              Back to Dashboard
             </button>
           </div>
           <h1
@@ -1095,7 +1176,7 @@ export default function AnalyticsDashboard({ onClose }) {
               lineHeight: 1.6,
             }}
           >
-            Items persist in MongoDB.
+            Items persist in MongoDB. Scores come from the backend.
           </p>
           <div
             style={{
@@ -1103,6 +1184,7 @@ export default function AnalyticsDashboard({ onClose }) {
               gap: 12,
               marginTop: 16,
               flexWrap: "wrap",
+              alignItems: "center",
             }}
           >
             {[
@@ -1121,11 +1203,36 @@ export default function AnalyticsDashboard({ onClose }) {
                 }}
               >
                 <div style={{ fontSize: 20, fontWeight: 700 }}>
-                  {loading || loadingItems ? "…" : v}
+                  {loading || loadingItems ? "..." : v}
                 </div>
                 <div style={{ fontSize: 11, opacity: 0.7 }}>{l}</div>
               </div>
             ))}
+            {analyticsLoading && (
+              <div
+                style={{
+                  background: "rgba(255,255,255,.1)",
+                  borderRadius: 10,
+                  padding: "8px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 11,
+                }}
+              >
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    border: "2px solid rgba(255,255,255,.3)",
+                    borderTop: "2px solid #fff",
+                    borderRadius: "50%",
+                    animation: "spin .7s linear infinite",
+                  }}
+                />
+                Updating scores...
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1175,6 +1282,7 @@ export default function AnalyticsDashboard({ onClose }) {
             </button>
           </div>
         )}
+
         {itemsError && (
           <div
             style={{
@@ -1201,7 +1309,7 @@ export default function AnalyticsDashboard({ onClose }) {
                 Failed to load items
               </div>
               <div style={{ fontSize: 12, color: "#991B1B" }}>
-                {itemsError} — make sure GET /api/items exists
+                {itemsError} make sure GET /api/items exists
               </div>
             </div>
             <button
@@ -1236,6 +1344,11 @@ export default function AnalyticsDashboard({ onClose }) {
           onDeleteItem={handleDeleteItem}
         />
 
+        {/* ── Tag Achievement ──
+            Rendered by iterating the STABLE `tags` array (never reorders).
+            Score is looked up from tagScoreMap by _id. This is the key fix
+            for card jumbling — the order of `tags` never changes after initial
+            fetch, so React always sees the same key in the same grid position. */}
         <SectionTitle>
           Tag achievement{" "}
           <span
@@ -1262,24 +1375,19 @@ export default function AnalyticsDashboard({ onClose }) {
             ? Array(4)
                 .fill(0)
                 .map((_, i) => <SkeletonCard key={i} />)
-            : tagScores.map((tag) => {
-                const tc = tagColorMap[tag._id] ?? TAG_COLORS[0];
-                const mapped =
-                  itemsForTag(tag._id, items)
-                    .map((i) => i.id)
-                    .join(", ") || "none";
-                return (
-                  <AchCard
-                    key={tag._id}
-                    name={tag.name}
-                    score={tag.score}
-                    sub={`Items: ${mapped}`}
-                    accent={tc.color}
-                  />
-                );
-              })}
+            : tags.map((tag) => (
+                <AchCard
+                  key={tag._id}
+                  name={tag.name}
+                  score={tagScoreMap[tag._id] ?? tagScoreMap[tag.name] ?? null}
+                  sub=""
+                  accent={(tagColorMap[tag._id] ?? TAG_COLORS[0]).color}
+                  analyticsLoading={analyticsLoading}
+                />
+              ))}
         </div>
 
+        {/* ── Group Achievement ── */}
         <SectionTitle>
           Group achievement{" "}
           <span
@@ -1291,7 +1399,7 @@ export default function AnalyticsDashboard({ onClose }) {
               color: "#9CA3AF",
             }}
           >
-            &nbsp;= avg of its tags' scores
+            &nbsp;= avg of its tags scores
           </span>
         </SectionTitle>
         <div
@@ -1306,23 +1414,20 @@ export default function AnalyticsDashboard({ onClose }) {
             ? Array(4)
                 .fill(0)
                 .map((_, i) => <SkeletonCard key={i} />)
-            : groupScores.map((grp) => {
-                const tagNames =
-                  grp.tags
-                    .map((tid) => tagById[tid]?.name)
-                    .filter(Boolean)
-                    .join(", ") || "—";
-                return (
-                  <AchCard
-                    key={grp._id}
-                    name={grp.name}
-                    score={grp.score}
-                    sub={`Tags: ${tagNames}`}
-                  />
-                );
-              })}
+            : groups.map((grp) => (
+                <AchCard
+                  key={grp._id}
+                  name={grp.name}
+                  score={
+                    groupScoreMap[grp._id] ?? groupScoreMap[grp.name] ?? null
+                  }
+                  sub=""
+                  analyticsLoading={analyticsLoading}
+                />
+              ))}
         </div>
 
+        {/* ── Family Achievement ── */}
         <SectionTitle>
           Family achievement{" "}
           <span
@@ -1334,7 +1439,7 @@ export default function AnalyticsDashboard({ onClose }) {
               color: "#9CA3AF",
             }}
           >
-            &nbsp;= avg of its groups' scores
+            &nbsp;= avg of its groups scores
           </span>
         </SectionTitle>
         <div
@@ -1349,23 +1454,20 @@ export default function AnalyticsDashboard({ onClose }) {
             ? Array(3)
                 .fill(0)
                 .map((_, i) => <SkeletonCard key={i} />)
-            : familyScores.map((fam) => {
-                const grpNames =
-                  fam.groups
-                    .map((gid) => groupById[gid]?.name)
-                    .filter(Boolean)
-                    .join(", ") || "—";
-                return (
-                  <AchCard
-                    key={fam._id}
-                    name={fam.name}
-                    score={fam.score}
-                    sub={`Groups: ${grpNames}`}
-                  />
-                );
-              })}
+            : families.map((fam) => (
+                <AchCard
+                  key={fam._id}
+                  name={fam.name}
+                  score={
+                    familyScoreMap[fam._id] ?? familyScoreMap[fam.name] ?? null
+                  }
+                  sub=""
+                  analyticsLoading={analyticsLoading}
+                />
+              ))}
         </div>
 
+        {/* ── Visual Comparison ── */}
         {!loading && !error && (
           <div
             style={{
@@ -1392,18 +1494,26 @@ export default function AnalyticsDashboard({ onClose }) {
                 },
                 {
                   title: "Tag achievement",
-                  labels: tagScores.map((t) => t.name.split(" ")[0]),
-                  values: tagScores.map((t) => t.score),
+                  labels: tags.map((t) => t.name.split(" ")[0]),
+                  values: tags.map(
+                    (t) => tagScoreMap[t._id] ?? tagScoreMap[t.name] ?? null,
+                  ),
                 },
                 {
                   title: "Group achievement",
-                  labels: groupScores.map((g) => g.name.split(" ")[0]),
-                  values: groupScores.map((g) => g.score),
+                  labels: groups.map((g) => g.name.split(" ")[0]),
+                  values: groups.map(
+                    (g) =>
+                      groupScoreMap[g._id] ?? groupScoreMap[g.name] ?? null,
+                  ),
                 },
                 {
                   title: "Family achievement",
-                  labels: familyScores.map((f) => f.name),
-                  values: familyScores.map((f) => f.score),
+                  labels: families.map((f) => f.name),
+                  values: families.map(
+                    (f) =>
+                      familyScoreMap[f._id] ?? familyScoreMap[f.name] ?? null,
+                  ),
                 },
               ].map(({ title, labels, values }) => {
                 const BAR_AREA = 140;
@@ -1422,7 +1532,6 @@ export default function AnalyticsDashboard({ onClose }) {
                     <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                       {labels.map((lbl, i) => {
                         const v = values[i];
-                        const c = getColor(v);
                         return (
                           <div
                             key={lbl}
@@ -1431,10 +1540,10 @@ export default function AnalyticsDashboard({ onClose }) {
                               textAlign: "center",
                               fontSize: 9,
                               fontWeight: 700,
-                              color: c,
+                              color: getColor(v),
                             }}
                           >
-                            {v === null ? "—" : `${v}%`}
+                            {v === null ? "--" : `${v}%`}
                           </div>
                         );
                       })}
@@ -1449,6 +1558,8 @@ export default function AnalyticsDashboard({ onClose }) {
                         borderRadius: 8,
                         padding: "0 4px",
                         position: "relative",
+                        opacity: analyticsLoading ? 0.6 : 1,
+                        transition: "opacity .3s",
                       }}
                     >
                       {[25, 50, 75].map((pct) => (
@@ -1471,14 +1582,13 @@ export default function AnalyticsDashboard({ onClose }) {
                           v === null
                             ? 4
                             : Math.max(4, Math.round((v / 100) * BAR_AREA));
-                        const c = getColor(v);
                         return (
                           <div
                             key={lbl}
                             style={{
                               flex: 1,
                               height: barH,
-                              background: c,
+                              background: getColor(v),
                               borderRadius: "4px 4px 0 0",
                               transition:
                                 "height .5s cubic-bezier(.4,0,.2,1),background .4s",
@@ -1513,6 +1623,7 @@ export default function AnalyticsDashboard({ onClose }) {
           </div>
         )}
 
+        {/* Legend */}
         <div
           style={{
             display: "flex",
@@ -1522,9 +1633,9 @@ export default function AnalyticsDashboard({ onClose }) {
           }}
         >
           {[
-            ["≥ 70% — Good", "#DCFCE7", "#166534"],
-            ["50–69% — Moderate", "#FEF3C7", "#92400E"],
-            ["< 50% — Needs improvement", "#FEE2E2", "#991B1B"],
+            ["70% or above - Good", "#DCFCE7", "#166534"],
+            ["50 to 69% - Moderate", "#FEF3C7", "#92400E"],
+            ["Below 50% - Needs improvement", "#FEE2E2", "#991B1B"],
             ["No items mapped", "#F3F4F6", "#6B7280"],
           ].map(([label, bg, color]) => (
             <span

@@ -49,6 +49,21 @@ router.put("/items/:id", async (req, res) => {
   }
 });
 
+// PATCH /items/:id — update only the fields provided
+router.patch("/items/:id", async (req, res) => {
+  try {
+    const item = await Item.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },  // $set only updates fields that are sent
+      { new: true }
+    );
+    if (!item) return res.status(404).json({ message: "Item not found" });
+    res.json(item);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 // ── DELETE 
 router.delete("/items/:id", async (req, res) => {
   try {

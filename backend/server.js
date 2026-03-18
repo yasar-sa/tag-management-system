@@ -7,6 +7,7 @@ import familyRoutes from "./routes/familyRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import itemRoutes from "./routes/itemRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js"
 
 const app = express();
 const PORT = 5000;
@@ -32,6 +33,7 @@ app.use("/api", familyRoutes);
 app.use("/api", courseRoutes);
 app.use("/api", dashboardRoutes);
 app.use("/api", itemRoutes);
+app.use("/api", analyticsRoutes)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

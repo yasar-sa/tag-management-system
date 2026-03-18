@@ -14,8 +14,11 @@ function App() {
   const [showNetworkView, setShowNetworkView] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [dashboardRefresh, setDashboardRefresh] = useState(0);
+  const [stats, setStats] = useState({ tags: 0, groups: 0, families: 0 });
+
 
   const refreshDashboard = () => {
+    console.log("refreshdashboard called")
     setDashboardRefresh((prev) => prev + 1);
   };
 
@@ -38,9 +41,9 @@ function App() {
             />
           </div>
           <div className="page-content">
-            <DashboardStats refreshKey={dashboardRefresh} />
+            <DashboardStats refreshKey={dashboardRefresh} onStatsLoad={setStats}  />
 
-            <Tabs active={active} setActive={setActive} />
+            <Tabs active={active} setActive={setActive}  counts={stats}/>
 
             {active === "tags" && (
               <TagsPage refreshDashboard={refreshDashboard} />
@@ -61,3 +64,5 @@ function App() {
 }
 
 export default App;
+
+//Digival@_2805

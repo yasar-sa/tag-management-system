@@ -1,22 +1,22 @@
 import { FaTags, FaUsers, FaLayerGroup } from "react-icons/fa";
-import { useState, useEffect } from "react";
-import api from "../api/api";
+// import { useState, useEffect } from "react";
+// import api from "../api/api";
 
-function Tabs({ active, setActive }) {
-  const [counts, setCounts] = useState({ tags: 0, groups: 0, families: 0 });
+function Tabs({ active, setActive , counts}) {
+  // const [counts, setCounts] = useState({ tags: 0, groups: 0, families: 0 });
 
-  useEffect(() => {
-    api
-      .get("/dashboard")
-      .then((res) => {
-        setCounts({
-          tags: res.data.tags || 0,
-          groups: res.data.groups || 0,
-          families: res.data.families || 0,
-        });
-      })
-      .catch((err) => console.error(err));
-  }, []);
+  // useEffect(() => {
+  //   api
+  //     .get("/dashboard")
+  //     .then((res) => {
+  //       setCounts({
+  //         tags: res.data.tags || 0,
+  //         groups: res.data.groups || 0,
+  //         families: res.data.families || 0,
+  //       });
+  //     })
+  //     .catch((err) => console.error(err));
+  // }, []);
 
   return (
     <div className="tabs-container">
